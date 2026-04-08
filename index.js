@@ -120,23 +120,33 @@ try {
 console.log('🌐 Iniciando servidor web...');
 
 // Servidor web para UptimeRobot
+// Servidor web para UptimeRobot
 const app = express();
 
+// Endpoint principal (mais rápido)
 app.get('/', (req, res) => {
-    res.json({
+    const data = {
         status: 'online',
         bot: client.user?.tag || 'Carregando...',
-        uptime: process.uptime(),
+        uptime: Math.floor(process.uptime()),
         servers: client.guilds.cache.size,
-        users: client.users.cache.size
-    });
+        users: client.users.cache.size,
+        timestamp: new Date().toISOString()
+    };
+    
+    console.log('🔔 Ping recebido do UptimeRobot');
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(JSON.stringify(data));
 });
 
+// Endpoint de saúde (ultra rápido)
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok',
-        timestamp: new Date().toISOString()
-    });
+    res.status(200).send('online');
+});
+
+// Endpoint de ping simples
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
 });
 
 const PORT = process.env.PORT || 3000;
