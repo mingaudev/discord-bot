@@ -1,6 +1,16 @@
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
-const config = require('./config.json');
+
+// Configuração - usa variáveis de ambiente OU config.json local
+let config;
+try {
+    config = require('./config.json');
+} catch {
+    config = {
+        clientId: process.env.CLIENT_ID,
+        token: process.env.BOT_TOKEN
+    };
+}
 
 const commands = [];
 const commandFolders = fs.readdirSync('./commands');
@@ -13,14 +23,14 @@ for (const folder of commandFolders) {
     }
 }
 
-const rest = new REST({ version: '10' }).setToken(config.token);
+const rest = new REST({ version: '10' }).setToken(config.token || process.env.BOT_TOKEN);
 
 (async () => {
     try {
         console.log(`🔄 Registrando ${commands.length} comandos...`);
 
         const data = await rest.put(
-            Routes.applicationCommands(config.clientId),
+            Routes.applicationCommands(config.clientId || process.env.CLIENT_ID),
             { body: commands }
         );
 
