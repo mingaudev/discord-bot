@@ -1,7 +1,6 @@
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 
-// Configuração - usa variáveis de ambiente OU config.json local
 let config;
 try {
     config = require('./config.json');
@@ -13,13 +12,35 @@ try {
 }
 
 const commands = [];
-const commandFolders = fs.readdirSync('./commands');
 
+// Carregar comandos de arquivos únicos
+const singleCommands = ['economia.js', 'ranking.js', 'utilidades.js'];
+for (const file of singleCommands) {
+    try {
+        const command = require(`./commands/${file}`);
+        if (command.commands) {
+            for (const cmd of command.commands) {
+                commands.push(cmd.toJSON());
+                console.log(`  ✅ /${cmd.name}`);
+            }
+        }
+    } catch (error) {
+        console.log(`  ⚠️ ${file} não encontrado`);
+    }
+}
+
+// Carregar comandos de pastas
+const commandFolders = ['moderacao', 'admin'];
 for (const folder of commandFolders) {
-    const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-        const command = require(`./commands/${folder}/${file}`);
-        commands.push(command.data.toJSON());
+    try {
+        const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
+        for (const file of commandFiles) {
+            const command = require(`./commands/${folder}/${file}`);
+            commands.push(command.data.toJSON());
+            console.log(`  ✅ ${folder}/${file}`);
+        }
+    } catch {
+        console.log(`  ⚠️ Pasta ${folder} não encontrada`);
     }
 }
 
@@ -27,7 +48,7 @@ const rest = new REST({ version: '10' }).setToken(config.token || process.env.BO
 
 (async () => {
     try {
-        console.log(`🔄 Registrando ${commands.length} comandos...`);
+        console.log(`\n🔄 Registrando ${commands.length} comandos...`);
 
         const data = await rest.put(
             Routes.applicationCommands(config.clientId || process.env.CLIENT_ID),
@@ -36,6 +57,6 @@ const rest = new REST({ version: '10' }).setToken(config.token || process.env.BO
 
         console.log(`✅ ${data.length} comandos registrados com sucesso!`);
     } catch (error) {
-        console.error('❌ Erro ao registrar comandos:', error);
+        console.error('❌ Erro:', error);
     }
 })();
