@@ -122,7 +122,7 @@ async function execute(interaction) {
                     { name: '📅 Conta criada', value: `<t:${Math.floor(target.createdTimestamp / 1000)}:D>`, inline: true }
                 )
                 .setTimestamp();
-
+//a
             if (member) {
                 embed.addFields(
                     { name: '📥 Entrou em', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:D>`, inline: true }
