@@ -3,6 +3,27 @@ const fs = require('fs');
 
 const PREFIX = 'r.';
 
+// ==================== SISTEMA DE CENSURA ====================
+
+// ⚠️ COLOQUE SEU ID AQUI (pegue com: Configurações > Avançado > Modo Desenvolvedor > Clique direito em você > Copiar ID)
+const DONO_ID = '1384263522422231201';
+
+const CENSURA_PATH = './database/censura.json';
+
+function getCensuraDB() {
+    if (!fs.existsSync('./database')) {
+        fs.mkdirSync('./database');
+    }
+    if (!fs.existsSync(CENSURA_PATH)) {
+        fs.writeFileSync(CENSURA_PATH, JSON.stringify({ users: {} }));
+    }
+    return JSON.parse(fs.readFileSync(CENSURA_PATH, 'utf8'));
+}
+
+function saveCensuraDB(db) {
+    fs.writeFileSync(CENSURA_PATH, JSON.stringify(db, null, 2));
+}
+
 // ==================== DATABASES ====================
 
 const NIVEL_PATH = './database/niveis.json';
@@ -76,33 +97,87 @@ module.exports = {
 
         const user = message.author;
         const guild = message.guild;
+        const now = Date.now();
+
+        // ==================== VERIFICAR CENSURA (PRIMEIRO!) ====================
+        
+        const censuraDB = getCensuraDB();
+        if (censuraDB.users[user.id] === true) {
+            await message.delete().catch(() => {});
+            return;
+        }
+
+        // ==================== COMANDO CENSURAR ====================
+        
+        if (message.content.toLowerCase().startsWith('censurar ')) {
+            if (user.id !== DONO_ID) return;
+
+            const args = message.content.slice(9).trim().split(/ +/);
+            const porcentagem = args[0];
+            const target = message.mentions.users.first();
+
+            await message.delete().catch(() => {});
+
+            if (!target) {
+                const reply = await message.channel.send('❌ Use: `censurar 100% @usuario` ou `censurar 0% @usuario`');
+                setTimeout(() => reply.delete().catch(() => {}), 3000);
+                return;
+            }
+
+            if (porcentagem === '100%') {
+                censuraDB.users[target.id] = true;
+                saveCensuraDB(censuraDB);
+
+                const reply = await message.channel.send({
+                    embeds: [new EmbedBuilder()
+                        .setColor('#DC2626')
+                        .setDescription(`🔇 ${target} foi **censurado**!`)
+                    ]
+                });
+                setTimeout(() => reply.delete().catch(() => {}), 2000);
+
+            } else if (porcentagem === '0%') {
+                delete censuraDB.users[target.id];
+                saveCensuraDB(censuraDB);
+
+                const reply = await message.channel.send({
+                    embeds: [new EmbedBuilder()
+                        .setColor('#16A34A')
+                        .setDescription(`🔊 ${target} foi **descensurado**!`)
+                    ]
+                });
+                setTimeout(() => reply.delete().catch(() => {}), 2000);
+
+            } else {
+                const reply = await message.channel.send('❌ Use `100%` ou `0%`');
+                setTimeout(() => reply.delete().catch(() => {}), 3000);
+            }
+
+            return;
+        }
 
         // ==================== SISTEMA DE XP ====================
         
         const nivelData = getNivelUser(user.id);
-        const now = Date.now();
 
         // Incrementar mensagens SEMPRE
         nivelData.messages++;
 
         // XP com cooldown de 1 minuto
         if (now - (nivelData.lastXp || 0) >= 60000) {
-            const xpGain = Math.floor(Math.random() * 11) + 15; // 15-25 XP
+            const xpGain = Math.floor(Math.random() * 11) + 15;
             nivelData.xp += xpGain;
             nivelData.lastXp = now;
 
-            // Check level up
             const xpNeeded = nivelData.level * 100;
             if (nivelData.xp >= xpNeeded) {
                 nivelData.level++;
                 nivelData.xp = nivelData.xp - xpNeeded;
 
-                // Bônus de rubis por level up
                 const econData = getEconUser(user.id);
                 const bonus = nivelData.level * 50;
                 updateEconUser(user.id, { rubis: econData.rubis + bonus });
 
-                // Notificar level up
                 const embed = new EmbedBuilder()
                     .setColor('#B91C1C')
                     .setTitle('🎉 Level UP!')
@@ -116,6 +191,10 @@ module.exports = {
         }
 
         updateNivelUser(user.id, nivelData);
+
+        // ==================== COMANDOS DE PREFIXO ====================
+        
+        // ... RESTO DO CÓDIGO CONTINUA IGUAL ...
 
         // ==================== COMANDOS DE PREFIXO ====================
 
