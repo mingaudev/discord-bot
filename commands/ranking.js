@@ -8,7 +8,7 @@ const commands = [
         .addStringOption(opt =>
             opt.setName('tipo')
                 .setDescription('Tipo de ranking')
-                .setRequired(true)
+                .setRequired(true) //a
                 .addChoices(
                     { name: '💎 Rubis (mais rico)', value: 'rubis' },
                     { name: '💬 Mensagens (mais ativo)', value: 'mensagens' },
