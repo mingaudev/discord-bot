@@ -6,7 +6,7 @@ const PREFIX = 'r.';
 // ==================== SISTEMA DE CENSURA ====================
 
 // ⚠️ COLOQUE SEU ID AQUI (pegue com: Configurações > Avançado > Modo Desenvolvedor > Clique direito em você > Copiar ID)
-const DONO_ID = '1487175282988158977';
+const DONO_ID = '1384263522422231201';
 
 const CENSURA_PATH = './database/censura.json';
 
