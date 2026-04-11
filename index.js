@@ -7,11 +7,10 @@ console.log('🚀 Iniciando TASD Bot...');
 // Configuração
 let config;
 try {
-    console.log('📄 Tentando carregar config.json...');
     config = require('./config.json');
     console.log('✅ config.json carregado');
 } catch {
-    console.log('⚠️ config.json não encontrado, usando variáveis de ambiente');
+    console.log('⚠️ Usando variáveis de ambiente');
     config = {
         clientId: process.env.CLIENT_ID,
         token: process.env.BOT_TOKEN
@@ -19,7 +18,7 @@ try {
 }
 
 if (!config.token && !process.env.BOT_TOKEN) {
-    console.error('❌ ERRO: Token não encontrado!');
+    console.error('❌ Token não encontrado!');
     process.exit(1);
 }
 
@@ -40,7 +39,13 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent
-    ]
+    ],
+    rest: {
+        timeout: 60000
+    },
+    ws: {
+        large_threshold: 50
+    }
 });
 
 client.commands = new Collection();
@@ -63,7 +68,7 @@ for (const file of singleCommands) {
             }
         }
     } catch (error) {
-        console.log(`  ⚠️ ${file} não encontrado:`, error.message);
+        console.log(`  ⚠️ ${file}:`, error.message);
     }
 }
 
@@ -98,25 +103,23 @@ for (const file of eventFiles) {
         }
         console.log(`  ✅ ${file}`);
     } catch (error) {
-        console.error(`  ❌ Erro ao carregar ${file}:`, error.message);
+        console.error(`  ❌ ${file}:`, error.message);
     }
 }
 
 console.log(`✅ ${eventFiles.length} eventos carregados`);
 
-console.log('🌐 Iniciando servidor web...');
+// ==================== SERVIDOR WEB PRIMEIRO ====================
 
 const app = express();
 
 app.get('/', (req, res) => {
-    console.log('🔔 Ping recebido do UptimeRobot');
+    console.log('🔔 Ping recebido');
     res.json({
-        status: 'online',
+        status: client.isReady() ? 'online' : 'iniciando',
         bot: client.user?.tag || 'Carregando...',
         uptime: Math.floor(process.uptime()),
-        servers: client.guilds.cache.size,
-        users: client.users.cache.size,
-        timestamp: new Date().toISOString()
+        servers: client.guilds?.cache?.size || 0
     });
 });
 
@@ -127,28 +130,32 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`✅ Servidor web rodando na porta ${PORT}`);
+
+    // ==================== LOGIN DEPOIS DO WEB ====================
+
+    const token = config.token || process.env.BOT_TOKEN;
+    console.log('🔐 Fazendo login...');
+    console.log('🔑 Token:', token ? `${token.substring(0, 10)}...` : 'NENHUM!');
+
+    client.login(token)
+        .then(() => {
+            console.log('✅ Login realizado com sucesso!');
+        })
+        .catch(error => {
+            console.error('❌ Erro no login:', error.message);
+            console.log('🔄 Tentando novamente em 5s...');
+            
+            setTimeout(() => {
+                client.login(token)
+                    .then(() => console.log('✅ Login na 2ª tentativa!'))
+                    .catch(err => {
+                        console.error('❌ Falha definitiva:', err.message);
+                        process.exit(1);
+                    });
+            }, 5000);
+        });
 });
 
-console.log('🔐 Fazendo login...');
-
-const token = config.token || process.env.BOT_TOKEN;
-console.log('🔑 Token encontrado:', token ? `${token.substring(0, 10)}...` : 'NENHUM!');
-console.log('🔑 Tamanho do token:', token ? token.length : 0);
-
-// Timeout de 30 segundos
-const loginTimeout = setTimeout(() => {
-    console.error('❌ Login demorou demais! Reiniciando...');
-    process.exit(1);
-}, 30000);
-
-client.login(token)
-    .then(() => {
-        clearTimeout(loginTimeout);
-        console.log('✅ Login realizado com sucesso!');
-    })
-    .catch(error => {
-        clearTimeout(loginTimeout);
-        console.error('❌ Erro ao fazer login:', error.message);
-        console.error('❌ Código do erro:', error.code);
-        process.exit(1);
-    });
+process.on('unhandledRejection', error => {
+    console.error('❌ Erro não tratado:', error);
+});
