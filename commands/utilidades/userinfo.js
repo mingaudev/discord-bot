@@ -29,7 +29,7 @@ module.exports = {
                     { name: `Cargos [${membro.roles.cache.size - 1}]`, value: cargos }
                 ],
                 footer: { text: 'TASD - Todos Aqui São Donos' },
-                timestamp: new Date()
+                timestamp: new Date()//a
             }]
         });
     }
