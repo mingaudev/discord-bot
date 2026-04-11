@@ -135,9 +135,20 @@ const token = config.token || process.env.BOT_TOKEN;
 console.log('🔑 Token encontrado:', token ? `${token.substring(0, 10)}...` : 'NENHUM!');
 console.log('🔑 Tamanho do token:', token ? token.length : 0);
 
+// Timeout de 30 segundos
+const loginTimeout = setTimeout(() => {
+    console.error('❌ Login demorou demais! Reiniciando...');
+    process.exit(1);
+}, 30000);
+
 client.login(token)
-    .then(() => console.log('✅ Login realizado com sucesso!'))
+    .then(() => {
+        clearTimeout(loginTimeout);
+        console.log('✅ Login realizado com sucesso!');
+    })
     .catch(error => {
+        clearTimeout(loginTimeout);
         console.error('❌ Erro ao fazer login:', error.message);
+        console.error('❌ Código do erro:', error.code);
         process.exit(1);
     });
