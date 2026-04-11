@@ -131,13 +131,13 @@ app.listen(PORT, () => {
 
 console.log('🔐 Fazendo login...');
 
-client.login(config.token || process.env.BOT_TOKEN)
+const token = config.token || process.env.BOT_TOKEN;
+console.log('🔑 Token encontrado:', token ? `${token.substring(0, 10)}...` : 'NENHUM!');
+console.log('🔑 Tamanho do token:', token ? token.length : 0);
+
+client.login(token)
     .then(() => console.log('✅ Login realizado com sucesso!'))
     .catch(error => {
-        console.error('❌ Erro ao fazer login:', error);
+        console.error('❌ Erro ao fazer login:', error.message);
         process.exit(1);
     });
-
-process.on('unhandledRejection', error => {
-    console.error('❌ Erro não tratado:', error);
-});
